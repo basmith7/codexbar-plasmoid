@@ -10,6 +10,7 @@ All notable changes to the CodexBar Plasma widget are documented in this file.
 - Add a "Pace to reset" tray bar tint (white / yellow / red) driven by CodexBar's per-window pace report
 - Surface CodexBar's pace summary in the usage bar tooltip, computing one locally for windows the CLI does not pace
 - Popup usage bars use the pace palette too when the tray tint is set to pace, so both views agree
+- Show CodexBar's extra scoped rate windows (e.g. Claude's per-model weekly limit) as additional usage bars
 
 ## 0.1.8 — 2026-09-04
 
