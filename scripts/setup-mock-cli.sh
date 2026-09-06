@@ -95,7 +95,10 @@ usage_json='[
       "updatedAt": "'"$iso_now"'",
       "primary": { "usedPercent": 40, "remainingPercent": 60, "resetsAt": "'"$in_4h"'", "windowMinutes": 300 },
       "secondary": { "usedPercent": 55, "remainingPercent": 45, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 },
-      "tertiary": { "usedPercent": 10, "remainingPercent": 90, "resetsAt": "'"$in_3d"'", "windowMinutes": 300 }
+      "tertiary": { "usedPercent": 10, "remainingPercent": 90, "resetsAt": "'"$in_3d"'", "windowMinutes": 300 },
+      "extraRateWindows": [
+        { "id": "claude-weekly-scoped-fable", "title": "Fable only", "window": { "usedPercent": 67, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } }
+      ]
     },
     "pace": {
       "primary": { "stage": "farAhead", "deltaPercent": 20, "expectedUsedPercent": 20, "etaSeconds": 5400, "willLastToReset": false, "summary": "20% in deficit | Expected 20% used | Projected empty in 1h 30m" },
