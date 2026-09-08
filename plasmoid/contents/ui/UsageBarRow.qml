@@ -44,8 +44,12 @@ ColumnLayout {
         if (!Number.isFinite(value)) {
             return accentColor;
         }
+        // Skip the pace palette until 10% of the window has elapsed; right
+        // after a reset there is no burn rate to project from.
+        const expected = Number(row.pace ? row.pace.expectedUsedPercent : NaN);
         if (row.usePaceTint && row.pace
-                && (row.pace.willLastToReset !== null || row.pace.deltaPercent !== null)) {
+                && (row.pace.willLastToReset !== null || row.pace.deltaPercent !== null)
+                && !(Number.isFinite(expected) && expected < 10)) {
             if (row.pace.willLastToReset === false) {
                 return Qt.rgba(1, 0, 0, 1);
             }

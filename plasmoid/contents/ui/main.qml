@@ -368,6 +368,13 @@ PlasmoidItem {
             if (!pace || (pace.willLastToReset === null && pace.deltaPercent === null)) {
                 return remainingLimitColor(percentLeft);
             }
+            // Too early in the window to project: right after a reset both
+            // usage and elapsed time are ~0, which reads as "tight" or even
+            // "runs dry" on a single request. Wait for 10% of the window.
+            const expected = Number(pace.expectedUsedPercent);
+            if (Number.isFinite(expected) && expected < 10) {
+                return remainingLimitColor(percentLeft);
+            }
             if (pace.willLastToReset === false) {
                 return Qt.rgba(1, 0, 0, 1);
             }
