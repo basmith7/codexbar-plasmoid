@@ -412,13 +412,23 @@ function runUsageForConfig(config) {
 function buildDemoUsagePayload(config) {
   const now = new Date();
   const percents = parseDemoPercents(clean(config.account));
+  // Keep every reset inside its window so the demo exercises both the
+  // time-left marker and the helper's fallback pace calculation.
+  const timings = [
+    { windowMinutes: 300, resetInMinutes: 60 },
+    { windowMinutes: 300, resetInMinutes: 180 },
+    { windowMinutes: 10080, resetInMinutes: 2880 },
+    { windowMinutes: 43200, resetInMinutes: 17280 },
+  ];
   const usageRows = percents.map((percentLeft, index) => {
     const title = demoRowTitle(index, percentLeft);
+    const timing = timings[index] || timings[timings.length - 1];
     return {
       id: `demo-${index + 1}`,
       title,
       percentLeft,
-      resetsAt: new Date(now.getTime() + (index + 1) * 36e5 * 6).toISOString(),
+      windowMinutes: timing.windowMinutes,
+      resetsAt: new Date(now.getTime() + timing.resetInMinutes * 60000).toISOString(),
     };
   });
 

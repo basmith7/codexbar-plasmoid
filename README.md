@@ -166,6 +166,11 @@ Compact mode can show either the provider icon or usage bars; usage bars can rep
 providers, or all providers, and can be tinted by provider color, remaining-limit gradient (white→yellow→red), pace to reset (white when the budget comfortably outlasts the window, yellow when tight, red when it is projected to run dry before reset — CodexBar's own pace report when it has one, computed locally from the window length and reset time otherwise), or theme text color.
 New widget instances default to all-provider usage bars with the first bar emphasized, theme-text tinting, and no metric text.
 
+Popup usage bars mark the fraction of the limit window remaining with a rounded gap and a pace indicator.
+Under **Appearance → Pace indicator**, choose the color for the indicator's percentage position, the current bar color,
+the provider color, or the theme text color. **Gaps only** hides the indicator and uses a narrower gap.
+The default is **Position color**. Bars without a known window length and reset time remain continuous.
+
 Email addresses are anonymized by default before the helper returns data to QML. Disable **Anonymize emails** only if the
 widget may display full account addresses.
 

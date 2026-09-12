@@ -18,6 +18,8 @@ ColumnLayout {
     // Fill colour for the bar. main.qml owns the palette so tray bars and popup
     // bars cannot drift apart.
     property color fillColor: Kirigami.Theme.highlightColor
+    property string paceIndicatorStyle: "position"
+    property color paceIndicatorColor: Kirigami.Theme.textColor
     // Wall clock, shared by every row from the main widget.
     property real nowMs: Date.now()
     // Fraction of the window still ahead (1 = just reset, 0 = about to reset),
@@ -153,34 +155,72 @@ ColumnLayout {
         }
     }
 
-    Rectangle {
+    Item {
+        id: usageTrack
         Layout.fillWidth: true
         Layout.preferredHeight: Kirigami.Units.smallSpacing
-        radius: height / 2
-        color: Qt.rgba(Kirigami.Theme.textColor.r, Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.09)
+        readonly property real radius: height / 2
+        readonly property real fillWidth: width * Math.max(0, Math.min(100, Number(row.percentLeft))) / 100
+        readonly property bool hasTimeMarker: row.timeLeftFraction >= 0
+        readonly property real markerWidth: Kirigami.Units.smallSpacing / 2
+        readonly property real markerGap: row.paceIndicatorStyle === "gaps" ? 0 : Kirigami.Units.smallSpacing / 2
+        readonly property real markerX: Math.max(0, Math.min(width - markerWidth,
+            width * row.timeLeftFraction - markerWidth / 2))
+        readonly property real gapLeft: Math.max(0, markerX - markerGap)
+        readonly property real gapRight: Math.min(width, markerX + markerWidth + markerGap)
+        readonly property color trackColor: Qt.rgba(Kirigami.Theme.textColor.r,
+            Kirigami.Theme.textColor.g, Kirigami.Theme.textColor.b, 0.09)
 
-        Rectangle {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            width: parent.width * Math.max(0, Math.min(100, Number(row.percentLeft))) / 100
-            radius: parent.radius
-            color: row.fillColor
+        Item {
+            width: usageTrack.hasTimeMarker ? usageTrack.gapLeft : usageTrack.width
+            height: parent.height
+
+            Rectangle {
+                width: parent.width
+                height: parent.height
+                radius: usageTrack.radius
+                color: usageTrack.trackColor
+            }
+
+            Rectangle {
+                width: Math.min(parent.width, usageTrack.fillWidth)
+                height: parent.height
+                radius: usageTrack.radius
+                color: row.fillColor
+            }
         }
 
-        // Time-remaining marker. Fill short of the marker means usage is
-        // outpacing the clock and the window is likely to run dry before reset.
+        Item {
+            visible: usageTrack.hasTimeMarker
+            x: usageTrack.gapRight
+            width: Math.max(0, usageTrack.width - x)
+            height: parent.height
+
+            Rectangle {
+                width: parent.width
+                height: parent.height
+                radius: usageTrack.radius
+                color: usageTrack.trackColor
+            }
+
+            Rectangle {
+                width: Math.max(0, Math.min(parent.width, usageTrack.fillWidth - parent.x))
+                height: parent.height
+                radius: usageTrack.radius
+                color: row.fillColor
+            }
+        }
+
+        // The transparent gaps make the tick divide both the track and fill.
         Rectangle {
-            visible: row.timeLeftFraction >= 0
-            width: Kirigami.Units.smallSpacing / 2
+            id: timeMarker
+            visible: usageTrack.hasTimeMarker && row.paceIndicatorStyle !== "gaps"
+            width: usageTrack.markerWidth
             anchors.verticalCenter: parent.verticalCenter
-            // Deliberately taller than the track: the overhang fills the row
-            // spacing so the marker stays legible on a thin bar.
             height: parent.height + Kirigami.Units.smallSpacing
-            x: Math.max(0, Math.min(parent.width - width, parent.width * row.timeLeftFraction - width / 2))
+            x: usageTrack.markerX
             radius: width / 2
-            color: Kirigami.Theme.textColor
-            opacity: 0.85
+            color: row.paceIndicatorColor
         }
     }
 

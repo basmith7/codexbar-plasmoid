@@ -123,6 +123,19 @@ PlasmaComponents3.Frame {
                 pace: modelData.pace || null
                 nowMs: card.nowMs
                 fillColor: card.rowFillColor(modelData.percentLeft, modelData.pace || null)
+                paceIndicatorStyle: plasmoid.configuration.paceIndicatorStyle || "position"
+                paceIndicatorColor: {
+                    switch (paceIndicatorStyle) {
+                    case "bar":
+                        return fillColor;
+                    case "provider":
+                        return card.accentColor;
+                    case "theme":
+                        return Kirigami.Theme.textColor;
+                    default:
+                        return card.rowFillColor(timeLeftFraction * 100, null);
+                    }
+                }
             }
         }
 

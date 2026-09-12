@@ -84,6 +84,10 @@
       <label>Show expanded list scrollbar</label>
       <default>true</default>
     </entry>
+    <entry name="paceIndicatorStyle" type="String">
+      <label>Pace indicator style</label>
+      <default>position</default>
+    </entry>
     <entry name="refreshIntervalSeconds" type="Int">
       <label>Refresh interval in seconds</label>
       <default>300</default>
