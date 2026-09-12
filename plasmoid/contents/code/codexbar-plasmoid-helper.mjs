@@ -1102,12 +1102,13 @@ function normalizePace(pace) {
     return null;
   }
   return {
-    stage: typeof pace.stage === "string" ? pace.stage : null,
     willLastToReset,
     // Negative = budget in reserve versus the expected burn; positive = deficit.
     deltaPercent,
     expectedUsedPercent: numberOrNull(pace.expectedUsedPercent),
     etaSeconds: numberOrNull(pace.etaSeconds),
+    // CodexBar's own prose, rendered verbatim by the widget. Locally computed
+    // pace leaves this null so QML builds a translated line from the fields.
     summary: typeof pace.summary === "string" ? pace.summary : null,
   };
 }
@@ -1145,36 +1146,15 @@ function computePace(percentLeft, resetsAt, windowMinutes, now = Date.now()) {
     // Time until empty at the current average burn rate.
     etaSeconds = Math.max(0, Math.round(((1 - used) / (used / elapsedFraction)) * windowMs / 1000));
   }
-  const reserve = deltaPercent <= 0
-    ? `${Math.abs(deltaPercent)}% in reserve`
-    : `${deltaPercent}% in deficit`;
-  const outlook = willLastToReset
-    ? "Lasts until reset"
-    : `Projected empty in ${formatDuration(etaSeconds)}`;
+  // No prose here: the widget builds the pace line with i18n() from these
+  // fields, and CodexBar's own summary (when present) wins instead.
   return {
-    stage: null,
     willLastToReset,
     deltaPercent,
     expectedUsedPercent,
     etaSeconds,
-    summary: `${reserve} | Expected ${expectedUsedPercent}% used | ${outlook}`,
+    summary: null,
   };
-}
-
-function formatDuration(seconds) {
-  if (!(seconds >= 0)) {
-    return "?";
-  }
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (days > 0) {
-    return `${days}d ${hours}h`;
-  }
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
 }
 
 function usageRows(providerId, usage, source, pace = {}) {

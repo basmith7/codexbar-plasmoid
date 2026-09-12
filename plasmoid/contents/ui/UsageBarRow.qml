@@ -111,10 +111,64 @@ ColumnLayout {
         if (row.timeLeftFraction >= 0) {
             parts.push(i18n("%1% of window remaining", Math.round(row.timeLeftFraction * 100)));
         }
-        if (row.pace && row.pace.summary) {
-            parts.push(row.pace.summary);
+        const pace = paceText();
+        if (pace) {
+            parts.push(pace);
         }
         return parts.join("\n");
+    }
+
+    // CodexBar's own pace prose when the CLI sent one; otherwise the same
+    // "reserve | expected | outlook" line built here so it can be translated.
+    function paceText() {
+        const pace = row.pace;
+        if (!pace) {
+            return "";
+        }
+        if (pace.summary) {
+            return String(pace.summary);
+        }
+        const parts = [];
+        const delta = Number(pace.deltaPercent);
+        if (Number.isFinite(delta)) {
+            parts.push(delta <= 0
+                ? i18n("%1% in reserve", Math.abs(delta))
+                : i18n("%1% in deficit", delta));
+        }
+        const expected = Number(pace.expectedUsedPercent);
+        if (Number.isFinite(expected)) {
+            parts.push(i18n("Expected %1% used", Math.round(expected)));
+        }
+        if (pace.willLastToReset === true) {
+            parts.push(i18n("Lasts until reset"));
+        } else {
+            const eta = Number(pace.etaSeconds);
+            if (Number.isFinite(eta)) {
+                parts.push(i18n("Projected empty in %1", formatDuration(eta)));
+            }
+        }
+        return parts.join(" | ");
+    }
+
+    // Compact elapsed time shared by the reset and pace tooltip lines.
+    function formatDuration(seconds) {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        const days = Math.floor(total / 86400);
+        const hours = Math.floor((total % 86400) / 3600);
+        const minutes = Math.floor((total % 3600) / 60);
+
+        const parts = [];
+        if (days > 0) {
+            parts.push(i18np("%1 day", "%1 days", days));
+        }
+        if (hours > 0 || days > 0) {
+            parts.push(i18np("%1 hour", "%1 hours", hours));
+        }
+        if (days === 0 || minutes > 0) {
+            parts.push(i18np("%1 minute", "%1 minutes", minutes));
+        }
+
+        return parts.join(" ");
     }
 
     function formatResetTime(value) {
@@ -129,23 +183,7 @@ ColumnLayout {
         if (diffMs <= 0) {
             return i18n("Resetting...");
         }
-        const totalSeconds = Math.floor(diffMs / 1000);
-        const days = Math.floor(totalSeconds / 86400);
-        const hours = Math.floor((totalSeconds % 86400) / 3600);
-        const minutes = Math.floor((totalSeconds % 3600) / 60);
-
-        const parts = [];
-        if (days > 0) {
-            parts.push(i18np("%1 day", "%1 days", days));
-        }
-        if (hours > 0 || days > 0) {
-            parts.push(i18np("%1 hour", "%1 hours", hours));
-        }
-        if (days === 0 || minutes > 0) {
-            parts.push(i18np("%1 minute", "%1 minutes", minutes));
-        }
-
-        return i18n("Resets in %1", parts.join(" "));
+        return i18n("Resets in %1", formatDuration(Math.floor(diffMs / 1000)));
     }
 
     RowLayout {
