@@ -175,6 +175,10 @@ if [[ "$use_mock" -eq 1 ]] && command -v node >/dev/null 2>&1; then
               const colliding = scoped.find(r=>r.id === "extra:primary");
               if(!colliding || colliding.pace?.summary !== null) process.exit(13);
               if(!clPrimary?.pace?.summary) process.exit(14);
+              // Native usageRows payloads keep scoped windows too.
+              const nativeEntry = j.entries.find(e=>e.provider==="mocknative");
+              if((nativeEntry?.rows||[]).length !== 2) process.exit(15);
+              if(!(nativeEntry?.rows||[]).some(r=>r.id === "extra:native-scoped")) process.exit(16);
               console.log(j.entries.map(e=>e.provider).join(","));
             } catch { process.exit(4); }
           });

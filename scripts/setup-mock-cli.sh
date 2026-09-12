@@ -108,6 +108,23 @@ usage_json='[
       "secondary": { "stage": "slightlyBehind", "deltaPercent": -5, "expectedUsedPercent": 50, "willLastToReset": true, "summary": "5% in reserve | Expected 50% used | Lasts until reset" }
     },
     "status": { "indicator": "none", "description": "Operational" }
+  },
+  {
+    "provider": "mocknative",
+    "account": "mock-native@example.com",
+    "source": "native",
+    "version": "0.0.0-mock",
+    "usage": {
+      "accountEmail": "mock-native@example.com",
+      "updatedAt": "'"$iso_now"'",
+      "usageRows": [
+        { "id": "native-session", "title": "Native session", "percentLeft": 42, "resetsAt": "'"$in_2h"'", "windowMinutes": 300 }
+      ],
+      "extraRateWindows": [
+        { "id": "native-scoped", "title": "Native scoped", "window": { "usedPercent": 25, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } }
+      ]
+    },
+    "status": { "indicator": "none", "description": "Operational" }
   }
 ]'
 

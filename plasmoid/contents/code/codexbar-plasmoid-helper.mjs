@@ -1211,9 +1211,36 @@ function extraRateWindowEntries(usage) {
   return entries;
 }
 
+/** One usage bar row built from a CodexBar usage window. */
+function windowUsageRow(id, title, window, paceReport) {
+  const usedPercent = numberOrNull(window?.usedPercent);
+  const remainingPercent = numberOrNull(window?.remainingPercent);
+  const percentLeft = remainingPercent !== null
+    ? remainingPercent
+    : usedPercent !== null
+      ? Math.max(0, Math.min(100, 100 - usedPercent))
+      : null;
+  const resetsAt = window?.resetsAt || null;
+  const windowMinutes = numberOrNull(window?.windowMinutes);
+  return {
+    id,
+    title,
+    percentLeft,
+    resetsAt,
+    windowMinutes,
+    pace: normalizePace(paceReport) || computePace(percentLeft, resetsAt, windowMinutes),
+  };
+}
+
 function usageRows(providerId, usage, source, pace = {}) {
+  // Scoped windows are rate windows the CLI reported explicitly, so they are
+  // never treated as an API balance placeholder.
+  const scoped = extraRateWindowEntries(usage)
+    .map(([id, title, window]) => windowUsageRow(id, title, window, null))
+    .filter((row) => row.percentLeft !== null);
+
   if (Array.isArray(usage.usageRows)) {
-    return usage.usageRows.map((row) => ({
+    const native = usage.usageRows.map((row) => ({
       id: String(row.id || row.title || "usage"),
       title: String(row.title || "Usage"),
       percentLeft: numberOrNull(row.percentLeft),
@@ -1222,6 +1249,7 @@ function usageRows(providerId, usage, source, pace = {}) {
       pace: normalizePace(row.pace)
         || computePace(numberOrNull(row.percentLeft), row.resetsAt || null, numberOrNull(row.windowMinutes)),
     })).filter((row) => row.percentLeft !== null);
+    return native.concat(scoped);
   }
 
   const labels = providerLabels(providerId);
@@ -1231,33 +1259,17 @@ function usageRows(providerId, usage, source, pace = {}) {
     ["tertiary", labels.tertiary, usage.tertiary],
   ];
 
-  // Scoped windows the CLI reports beyond the standard three.
-  windows.push(...extraRateWindowEntries(usage));
-
-  return windows.map(([id, title, window]) => {
-    const usedPercent = numberOrNull(window?.usedPercent);
-    const remainingPercent = numberOrNull(window?.remainingPercent);
-    const percentLeft = remainingPercent !== null
-      ? remainingPercent
-      : usedPercent !== null
-        ? Math.max(0, Math.min(100, 100 - usedPercent))
-        : null;
-    const resetsAt = window?.resetsAt || null;
-    // For API providers, a window without resetsAt is just a balance placeholder,
-    // not a real usage bar. Skip it so the balance summary renders instead.
-    if (source === "api" && !resetsAt && percentLeft !== null) {
+  const standard = windows.map(([id, title, window]) => {
+    const row = windowUsageRow(id, title, window, pace?.[id]);
+    // For API providers, a window without resetsAt is just a balance
+    // placeholder, not a real usage bar. Skip it so the balance summary renders.
+    if (source === "api" && !row.resetsAt && row.percentLeft !== null) {
       return null;
     }
-    const windowMinutes = numberOrNull(window?.windowMinutes);
-    return {
-      id,
-      title,
-      percentLeft,
-      resetsAt,
-      windowMinutes,
-      pace: normalizePace(pace?.[id]) || computePace(percentLeft, resetsAt, windowMinutes),
-    };
+    return row;
   }).filter((row) => row !== null && row.percentLeft !== null);
+
+  return standard.concat(scoped);
 }
 
 function parseBalanceFromDescription(description) {
