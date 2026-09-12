@@ -166,6 +166,15 @@ if [[ "$use_mock" -eq 1 ]] && command -v node >/dev/null 2>&1; then
               if(clPrimary?.pace?.willLastToReset !== false) process.exit(8);
               // Reset beyond the window length must yield no pace verdict at all.
               if(clTertiary?.windowMinutes !== 300 || clTertiary?.pace !== null) process.exit(9);
+              // Scoped rate windows keep namespaced ids and their own pace.
+              const claudeRows = (j.entries.find(e=>e.provider==="claude")||{}).rows || [];
+              const scoped = claudeRows.filter(r=>String(r.id).startsWith("extra:"));
+              if(scoped.length !== 3) process.exit(10);
+              if(scoped.filter(r=>r.id === "extra:claude-weekly-scoped-fable").length !== 1) process.exit(11);
+              if(!scoped.some(r=>r.id === "extra:claude-weekly-scoped-fable#2")) process.exit(12);
+              const colliding = scoped.find(r=>r.id === "extra:primary");
+              if(!colliding || colliding.pace?.summary !== null) process.exit(13);
+              if(!clPrimary?.pace?.summary) process.exit(14);
               console.log(j.entries.map(e=>e.provider).join(","));
             } catch { process.exit(4); }
           });

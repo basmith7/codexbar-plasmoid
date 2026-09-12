@@ -1167,6 +1167,50 @@ function computePace(percentLeft, resetsAt, windowMinutes, now = Date.now()) {
   };
 }
 
+/**
+ * Scoped rate windows the CLI reports beyond the standard three, e.g. Claude's
+ * per-model weekly limits ("Fable only"). Shape: { id, title, window }.
+ *
+ * Row ids are namespaced as `extra:<id>`: a row id keys tray-bar selection and
+ * the per-window CLI pace lookup, so an unnamespaced scoped window could shadow
+ * primary/secondary/tertiary and inherit their pace report. A window the CLI
+ * reports twice is collapsed; the same id with different data keeps both rows
+ * as `extra:<id>#n`.
+ */
+function extraRateWindowEntries(usage) {
+  const entries = [];
+  const seenIds = new Set();
+  const seenWindows = new Set();
+  for (const extra of Array.isArray(usage.extraRateWindows) ? usage.extraRateWindows : []) {
+    if (!extra || typeof extra !== "object" || !extra.window) {
+      continue;
+    }
+    const rawId = clean(extra.id) || clean(extra.title);
+    if (!rawId) {
+      continue;
+    }
+    const window = extra.window;
+    const fingerprint = JSON.stringify([
+      rawId,
+      window.usedPercent,
+      window.remainingPercent,
+      window.resetsAt,
+      window.windowMinutes,
+    ]);
+    if (seenWindows.has(fingerprint)) {
+      continue;
+    }
+    seenWindows.add(fingerprint);
+    let id = `extra:${rawId}`;
+    for (let n = 2; seenIds.has(id); n += 1) {
+      id = `extra:${rawId}#${n}`;
+    }
+    seenIds.add(id);
+    entries.push([id, clean(extra.title) || rawId, window]);
+  }
+  return entries;
+}
+
 function usageRows(providerId, usage, source, pace = {}) {
   if (Array.isArray(usage.usageRows)) {
     return usage.usageRows.map((row) => ({
@@ -1187,18 +1231,8 @@ function usageRows(providerId, usage, source, pace = {}) {
     ["tertiary", labels.tertiary, usage.tertiary],
   ];
 
-  // Scoped windows the CLI reports beyond the standard three, e.g. Claude's
-  // per-model weekly limits ("Fable only"). Shape: { id, title, window }.
-  for (const extra of Array.isArray(usage.extraRateWindows) ? usage.extraRateWindows : []) {
-    if (!extra || typeof extra !== "object" || !extra.window) {
-      continue;
-    }
-    const id = clean(extra.id) || clean(extra.title);
-    if (!id) {
-      continue;
-    }
-    windows.push([id, clean(extra.title) || id, extra.window]);
-  }
+  // Scoped windows the CLI reports beyond the standard three.
+  windows.push(...extraRateWindowEntries(usage));
 
   return windows.map(([id, title, window]) => {
     const usedPercent = numberOrNull(window?.usedPercent);

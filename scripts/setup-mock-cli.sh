@@ -97,7 +97,10 @@ usage_json='[
       "secondary": { "usedPercent": 55, "remainingPercent": 45, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 },
       "tertiary": { "usedPercent": 10, "remainingPercent": 90, "resetsAt": "'"$in_3d"'", "windowMinutes": 300 },
       "extraRateWindows": [
-        { "id": "claude-weekly-scoped-fable", "title": "Fable only", "window": { "usedPercent": 67, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } }
+        { "id": "claude-weekly-scoped-fable", "title": "Fable only", "window": { "usedPercent": 67, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } },
+        { "id": "claude-weekly-scoped-fable", "title": "Fable only", "window": { "usedPercent": 67, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } },
+        { "id": "claude-weekly-scoped-fable", "title": "Fable only", "window": { "usedPercent": 80, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } },
+        { "id": "primary", "title": "Scoped, collides with the session window", "window": { "usedPercent": 20, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 } }
       ]
     },
     "pace": {
