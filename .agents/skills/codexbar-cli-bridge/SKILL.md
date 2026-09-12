@@ -154,6 +154,7 @@ On command failure:
 - Carry `windowMinutes` and a normalized `pace` object on each row when the CLI reports them (native `usage.usageRows` rows supply both directly; standard windows read `usage.<window>.windowMinutes` and `item.pace.<window>`).
 - `pace.summary` is CodexBar's own prose and is rendered verbatim. Leave it null for pace the helper computes itself so QML can build a translated line from `deltaPercent` / `expectedUsedPercent` / `etaSeconds`.
 - Compute fallback pace only from elapsed window time. When a row has no CLI pace and its reset lands at or beyond the full window length, report no pace at all rather than a verdict the data cannot support.
+- Append `usage.extraRateWindows` entries (`{ id, title, window }`) after the standard windows for both row shapes — the standard windows and native `usage.usageRows` payloads. Namespace their row ids as `extra:<id>`: a row id keys tray-bar selection and the per-window CLI pace lookup, so an unnamespaced scoped window could shadow primary/secondary/tertiary and inherit their pace report. Collapse a window the CLI reports twice; keep same-id-different-data windows as `extra:<id>#n`.
 - Use `openaiDashboard.dailyBreakdown` for credit history when available; otherwise use `cost.daily`.
 - Always pad `dailyUsage` to a continuous last-30 local-calendar-day window (zero-cost flat days when missing).
 - Preserve per-day `modelBreakdowns` as `models: [{ name, costUSD, totalTokens }]`.
