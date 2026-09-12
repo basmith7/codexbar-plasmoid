@@ -1115,7 +1115,9 @@ function normalizePace(pace) {
 /**
  * Fallback pace when the CLI reports none for a window but we know its length
  * and reset time: compare budget used against the fraction of the window
- * elapsed, as CodexBar does for primary/secondary.
+ * elapsed, as CodexBar does for primary/secondary. Returns null when the data
+ * cannot support a projection (no reset time, no window length, or a reset at
+ * or beyond the full window length).
  */
 function computePace(percentLeft, resetsAt, windowMinutes, now = Date.now()) {
   if (percentLeft === null || !resetsAt || !(windowMinutes > 0)) {
@@ -1126,15 +1128,22 @@ function computePace(percentLeft, resetsAt, windowMinutes, now = Date.now()) {
     return null;
   }
   const windowMs = windowMinutes * 60000;
-  const elapsed = Math.max(0, Math.min(1, 1 - (resetMs - now) / windowMs));
+  const elapsed = 1 - (resetMs - now) / windowMs;
+  // A reset at or beyond the full window length means no window time has
+  // elapsed, so there is no burn rate to project from. Report nothing rather
+  // than a verdict the data cannot support.
+  if (!(elapsed > 0)) {
+    return null;
+  }
+  const elapsedFraction = Math.min(1, elapsed);
   const used = Math.max(0, Math.min(1, 1 - percentLeft / 100));
-  const expectedUsedPercent = Math.round(elapsed * 100);
-  const deltaPercent = Math.round((used - elapsed) * 100);
-  const willLastToReset = elapsed <= 0 ? true : used <= elapsed;
+  const expectedUsedPercent = Math.round(elapsedFraction * 100);
+  const deltaPercent = Math.round((used - elapsedFraction) * 100);
+  const willLastToReset = used <= elapsedFraction;
   let etaSeconds = null;
   if (!willLastToReset && used > 0) {
     // Time until empty at the current average burn rate.
-    etaSeconds = Math.max(0, Math.round(((1 - used) / (used / elapsed)) * windowMs / 1000));
+    etaSeconds = Math.max(0, Math.round(((1 - used) / (used / elapsedFraction)) * windowMs / 1000));
   }
   const reserve = deltaPercent <= 0
     ? `${Math.abs(deltaPercent)}% in reserve`

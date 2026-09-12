@@ -25,7 +25,10 @@ ColumnLayout {
     property real nowMs: Date.now()
     // Fraction of the window still ahead (1 = just reset, 0 = about to reset),
     // or -1 when unknown. Drawn as a marker at the same scale as percentLeft so
-    // the fill reaching past it means the budget outlasts the clock.
+    // the fill reaching past it means the budget outlasts the clock. A reset
+    // scheduled at or beyond the full window length reads as more than a whole
+    // window and counts as unknown instead of pinning the marker to the right
+    // edge.
     readonly property real timeLeftFraction: {
         const minutes = Number(row.windowMinutes);
         if (!row.resetsAt || !Number.isFinite(minutes) || minutes <= 0) {
@@ -36,7 +39,10 @@ ColumnLayout {
             return -1;
         }
         const left = (resetMs - row.nowMs) / (minutes * 60000);
-        return Math.max(0, Math.min(1, left));
+        if (!(left <= 1)) {
+            return -1;
+        }
+        return Math.max(0, left);
     }
     // Fill color: white when full, muted yellow mid, red when low (red by ~10%).
     readonly property color remainingColor: {

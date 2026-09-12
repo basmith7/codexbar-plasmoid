@@ -44,6 +44,8 @@ iso_now="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "2026-07-26T12:00:0
 day0="$(date -u +"%Y-%m-%d" 2>/dev/null || echo "2026-07-26")"
 day1="$(date -u -d 'yesterday' +"%Y-%m-%d" 2>/dev/null || echo "2026-07-25")"
 # Future reset times so the time-remaining marker and pace tint have something to show.
+# in_3d feeds the Claude tertiary row, whose reset deliberately falls beyond its
+# 300-minute window: the helper must report no pace instead of inventing one.
 in_2h="$(date -u -d '+2 hours' +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "2026-07-26T14:00:00Z")"
 in_4h="$(date -u -d '+4 hours' +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "2026-07-26T16:00:00Z")"
 in_1d="$(date -u -d '+1 day' +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || echo "2026-07-27T12:00:00Z")"
@@ -93,7 +95,7 @@ usage_json='[
       "updatedAt": "'"$iso_now"'",
       "primary": { "usedPercent": 40, "remainingPercent": 60, "resetsAt": "'"$in_4h"'", "windowMinutes": 300 },
       "secondary": { "usedPercent": 55, "remainingPercent": 45, "resetsAt": "'"$in_3d"'", "windowMinutes": 10080 },
-      "tertiary": { "usedPercent": 10, "remainingPercent": 90, "resetsAt": "'"$iso_now"'" }
+      "tertiary": { "usedPercent": 10, "remainingPercent": 90, "resetsAt": "'"$in_3d"'", "windowMinutes": 300 }
     },
     "pace": {
       "primary": { "stage": "farAhead", "deltaPercent": 20, "expectedUsedPercent": 20, "etaSeconds": 5400, "willLastToReset": false, "summary": "20% in deficit | Expected 20% used | Projected empty in 1h 30m" },
