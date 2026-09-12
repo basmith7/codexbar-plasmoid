@@ -89,7 +89,3 @@ PATH=/tmp/codexbar-plasma-mock:$PATH \
 | `kde-dev-tools` | kpackagetool6, qmllint, paths |
 
 Also see `.agents/AGENTS.md` for QML conventions.
-
-## CodeGraph
-
-When a `.codegraph/` directory exists at the repository root, use CodeGraph before text search or manually reading files when locating or understanding code.
