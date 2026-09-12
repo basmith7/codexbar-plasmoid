@@ -15,13 +15,10 @@ ColumnLayout {
     // CodexBar pace report for this window ({ willLastToReset, deltaPercent,
     // summary, ... }) or null.
     property var pace: null
-    property color accentColor: Kirigami.Theme.highlightColor
-    // When true and a pace report is present, the fill uses the pace palette
-    // (white = comfortable reserve, yellow = tight, red = runs dry before
-    // reset) so the popup matches tray bars tinted by pace.
-    property bool usePaceTint: false
-    // Wall clock, ticked once a minute so the time marker keeps moving between
-    // refreshes.
+    // Fill colour for the bar. main.qml owns the palette so tray bars and popup
+    // bars cannot drift apart.
+    property color fillColor: Kirigami.Theme.highlightColor
+    // Wall clock, shared by every row from the main widget.
     property real nowMs: Date.now()
     // Fraction of the window still ahead (1 = just reset, 0 = about to reset),
     // or -1 when unknown. Drawn as a marker at the same scale as percentLeft so
@@ -44,46 +41,6 @@ ColumnLayout {
         }
         return Math.max(0, left);
     }
-    // Fill color: white when full, muted yellow mid, red when low (red by ~10%).
-    readonly property color remainingColor: {
-        const value = Number(percentLeft);
-        if (!Number.isFinite(value)) {
-            return accentColor;
-        }
-        // Skip the pace palette until 10% of the window has elapsed; right
-        // after a reset there is no burn rate to project from.
-        const expected = Number(row.pace ? row.pace.expectedUsedPercent : NaN);
-        if (row.usePaceTint && row.pace
-                && (row.pace.willLastToReset !== null || row.pace.deltaPercent !== null)
-                && !(Number.isFinite(expected) && expected < 10)) {
-            if (row.pace.willLastToReset === false) {
-                return Qt.rgba(1, 0, 0, 1);
-            }
-            const delta = Number(row.pace.deltaPercent);
-            // deltaPercent < 0 means budget in reserve versus the expected burn.
-            if (Number.isFinite(delta) && delta > -10) {
-                return Qt.rgba(1.0, 0.92, 0.45, 1);
-            }
-            return Qt.rgba(1, 1, 1, 1);
-        }
-        const t = Math.max(0, Math.min(100, value)) / 100;
-        // muted yellow around 55% remaining; pure red by 10%
-        const yellowAt = 0.55;
-        const redAt = 0.10;
-        // soft butter yellow (not pure/neon)
-        const yR = 1.0, yG = 0.92, yB = 0.45;
-        if (t <= redAt) {
-            return Qt.rgba(1, 0, 0, 1);
-        }
-        if (t >= yellowAt) {
-            // white (1,1,1) → muted yellow
-            const u = (t - yellowAt) / (1 - yellowAt);
-            return Qt.rgba(1, 1 - (1 - yG) * (1 - u), 1 - (1 - yB) * (1 - u), 1);
-        }
-        // muted yellow → red (1,0,0)
-        const u = (t - redAt) / (yellowAt - redAt);
-        return Qt.rgba(1, yG * u, yB * u, 1);
-    }
 
     spacing: Kirigami.Units.smallSpacing / 2
 
@@ -93,13 +50,6 @@ ColumnLayout {
 
     HoverHandler {
         id: hoverHandler
-    }
-
-    Timer {
-        interval: 60000
-        repeat: true
-        running: row.visible && row.timeLeftFraction >= 0
-        onTriggered: row.nowMs = Date.now()
     }
 
     function tooltipText() {
@@ -215,19 +165,20 @@ ColumnLayout {
             anchors.bottom: parent.bottom
             width: parent.width * Math.max(0, Math.min(100, Number(row.percentLeft))) / 100
             radius: parent.radius
-            color: row.remainingColor
+            color: row.fillColor
         }
 
         // Time-remaining marker. Fill short of the marker means usage is
         // outpacing the clock and the window is likely to run dry before reset.
         Rectangle {
-            id: timeMarker
             visible: row.timeLeftFraction >= 0
-            width: 2
+            width: Kirigami.Units.smallSpacing / 2
             anchors.verticalCenter: parent.verticalCenter
+            // Deliberately taller than the track: the overhang fills the row
+            // spacing so the marker stays legible on a thin bar.
             height: parent.height + Kirigami.Units.smallSpacing
             x: Math.max(0, Math.min(parent.width - width, parent.width * row.timeLeftFraction - width / 2))
-            radius: 1
+            radius: width / 2
             color: Kirigami.Theme.textColor
             opacity: 0.85
         }

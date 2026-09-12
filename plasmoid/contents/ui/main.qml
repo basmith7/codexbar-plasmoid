@@ -102,6 +102,19 @@ PlasmoidItem {
         id: providerEntryModel
     }
 
+    // Wall clock for the usage-bar time markers, shared by every row instead of
+    // one timer per row.
+    property real nowMs: Date.now()
+
+    Timer {
+        id: clockTimer
+        interval: 60000
+        repeat: true
+        running: root.visible
+        triggeredOnStart: false
+        onTriggered: root.nowMs = Date.now()
+    }
+
     Timer {
         id: refreshTimer
         interval: root.refreshInterval * 1000
@@ -358,22 +371,25 @@ PlasmoidItem {
             return Qt.rgba(1, yG * u, yB * u, 1);
         }
 
-        // Pace tint: will the remaining budget last until the window resets?
-        // White = comfortable reserve, yellow = on track but tight, red = the
-        // CLI projects the window runs dry before reset. Uses the same palette
-        // as the remaining-limit gradient. Rows without a pace report fall
-        // back to that gradient.
-        function paceColor(row, percentLeft) {
-            const pace = row && row.pace ? row.pace : null;
+        function paceToResetEnabled() {
+            return (plasmoid.configuration.compactBarsTint || "provider") === "pace";
+        }
+
+        // Pace palette: white = comfortable reserve, yellow = on track but
+        // tight, red = the CLI projects the window runs dry before reset.
+        // Returns null when there is no verdict to show, so callers fall back
+        // to the remaining-limit gradient. Rows the CLI does not pace carry a
+        // locally computed pace, so this covers both.
+        function pacePalette(pace, percentLeft) {
             if (!pace || (pace.willLastToReset === null && pace.deltaPercent === null)) {
-                return remainingLimitColor(percentLeft);
+                return null;
             }
             // Too early in the window to project: right after a reset both
             // usage and elapsed time are ~0, which reads as "tight" or even
             // "runs dry" on a single request. Wait for 10% of the window.
             const expected = Number(pace.expectedUsedPercent);
             if (Number.isFinite(expected) && expected < 10) {
-                return remainingLimitColor(percentLeft);
+                return null;
             }
             if (pace.willLastToReset === false) {
                 return Qt.rgba(1, 0, 0, 1);
@@ -384,6 +400,26 @@ PlasmoidItem {
                 return Qt.rgba(1.0, 0.92, 0.45, 1);
             }
             return Qt.rgba(1, 1, 1, 1);
+        }
+
+        function paceColor(row, percentLeft) {
+            return pacePalette(row && row.pace ? row.pace : null, percentLeft)
+                || remainingLimitColor(percentLeft);
+        }
+
+        // Fill colour for popup usage bars: the same palette implementation the
+        // tray bars above use, so the two views cannot drift apart.
+        function usageBarFillColor(percentLeft, pace, accentColor) {
+            if (!Number.isFinite(Number(percentLeft))) {
+                return accentColor;
+            }
+            if (paceToResetEnabled()) {
+                const paced = pacePalette(pace, percentLeft);
+                if (paced) {
+                    return paced;
+                }
+            }
+            return remainingLimitColor(percentLeft);
         }
 
         function compactBarColor(provider, percentLeft, row) {
@@ -1560,6 +1596,11 @@ PlasmoidItem {
 
                 delegate: ProviderCard {
                     id: providerCard
+
+                    // The palette and the wall clock live here so tray bars and
+                    // popup bars cannot disagree.
+                    fillColorFor: root.usageBarFillColor
+                    nowMs: root.nowMs
 
                     required property string entryId
                     required property string provider

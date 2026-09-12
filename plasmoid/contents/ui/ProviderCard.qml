@@ -13,6 +13,17 @@ PlasmaComponents3.Frame {
     property color accentColor: Kirigami.Theme.highlightColor
     property bool showCredits: true
     property bool showHistory: true
+    // Supplied by main.qml: one palette for tray and popup bars, one clock for
+    // every row.
+    property var fillColorFor: null
+    property real nowMs: Date.now()
+
+    function rowFillColor(percentLeft, pace) {
+        if (!card.fillColorFor) {
+            return Kirigami.Theme.highlightColor;
+        }
+        return card.fillColorFor(percentLeft, pace, card.accentColor);
+    }
 
     signal siteRequested()
 
@@ -110,8 +121,8 @@ PlasmaComponents3.Frame {
                 resetsAt: modelData.resetsAt || ""
                 windowMinutes: Number(modelData.windowMinutes) || 0
                 pace: modelData.pace || null
-                usePaceTint: (plasmoid.configuration.compactBarsTint || "provider") === "pace"
-                accentColor: card.accentColor
+                nowMs: card.nowMs
+                fillColor: card.rowFillColor(modelData.percentLeft, modelData.pace || null)
             }
         }
 
@@ -120,7 +131,8 @@ PlasmaComponents3.Frame {
             visible: !card.isErrorOnly && card.entry && card.entry.codeReviewRemainingPercent !== null
             title: i18n("Code review")
             percentLeft: card.entry ? card.entry.codeReviewRemainingPercent : null
-            accentColor: card.accentColor
+            nowMs: card.nowMs
+            fillColor: card.rowFillColor(card.entry ? card.entry.codeReviewRemainingPercent : null, null)
         }
 
         RowLayout {
