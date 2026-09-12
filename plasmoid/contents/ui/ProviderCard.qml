@@ -13,6 +13,17 @@ PlasmaComponents3.Frame {
     property color accentColor: Kirigami.Theme.highlightColor
     property bool showCredits: true
     property bool showHistory: true
+    // Supplied by main.qml: one palette for tray and popup bars, one clock for
+    // every row.
+    property var fillColorFor: null
+    property real nowMs: Date.now()
+
+    function rowFillColor(percentLeft, pace) {
+        if (!card.fillColorFor) {
+            return Kirigami.Theme.highlightColor;
+        }
+        return card.fillColorFor(percentLeft, pace, card.accentColor);
+    }
 
     signal siteRequested()
 
@@ -108,7 +119,23 @@ PlasmaComponents3.Frame {
                 title: modelData.title
                 percentLeft: modelData.percentLeft
                 resetsAt: modelData.resetsAt || ""
-                accentColor: card.accentColor
+                windowMinutes: Number(modelData.windowMinutes) || 0
+                pace: modelData.pace || null
+                nowMs: card.nowMs
+                fillColor: card.rowFillColor(modelData.percentLeft, modelData.pace || null)
+                paceIndicatorStyle: plasmoid.configuration.paceIndicatorStyle || "position"
+                paceIndicatorColor: {
+                    switch (paceIndicatorStyle) {
+                    case "bar":
+                        return fillColor;
+                    case "provider":
+                        return card.accentColor;
+                    case "theme":
+                        return Kirigami.Theme.textColor;
+                    default:
+                        return card.rowFillColor(timeLeftFraction * 100, null);
+                    }
+                }
             }
         }
 
@@ -117,7 +144,8 @@ PlasmaComponents3.Frame {
             visible: !card.isErrorOnly && card.entry && card.entry.codeReviewRemainingPercent !== null
             title: i18n("Code review")
             percentLeft: card.entry ? card.entry.codeReviewRemainingPercent : null
-            accentColor: card.accentColor
+            nowMs: card.nowMs
+            fillColor: card.rowFillColor(card.entry ? card.entry.codeReviewRemainingPercent : null, null)
         }
 
         RowLayout {

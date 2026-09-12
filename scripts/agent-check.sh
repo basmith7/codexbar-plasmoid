@@ -155,6 +155,17 @@ if [[ "$use_mock" -eq 1 ]] && command -v node >/dev/null 2>&1; then
               const j=JSON.parse(s);
               if(!j || j.ok!==true) process.exit(2);
               if(!Array.isArray(j.entries) || j.entries.length<1) process.exit(3);
+              const rowOf = (p, id) => ((j.entries.find(e=>e.provider===p)||{}).rows||[]).find(r=>r.id===id);
+              const cxPrimary = rowOf("codex", "primary");
+              const cxSecondary = rowOf("codex", "secondary");
+              const clPrimary = rowOf("claude", "primary");
+              const clTertiary = rowOf("claude", "tertiary");
+              if(cxPrimary?.windowMinutes !== 300) process.exit(5);
+              if(cxPrimary?.pace?.willLastToReset !== true) process.exit(6);
+              if(!Number.isFinite(cxSecondary?.pace?.expectedUsedPercent)) process.exit(7);
+              if(clPrimary?.pace?.willLastToReset !== false) process.exit(8);
+              // Reset beyond the window length must yield no pace verdict at all.
+              if(clTertiary?.windowMinutes !== 300 || clTertiary?.pace !== null) process.exit(9);
               console.log(j.entries.map(e=>e.provider).join(","));
             } catch { process.exit(4); }
           });

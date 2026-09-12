@@ -72,7 +72,20 @@ The helper should output:
       "status": { "indicator": "none", "description": "Operational" },
       "error": null,
       "rows": [
-        { "id": "primary", "title": "Session", "percentLeft": 63, "resetsAt": "ISO-8601" }
+        {
+          "id": "primary",
+          "title": "Session",
+          "percentLeft": 63,
+          "resetsAt": "ISO-8601",
+          "windowMinutes": 300,
+          "pace": {
+            "willLastToReset": true,
+            "deltaPercent": -23,
+            "expectedUsedPercent": 60,
+            "etaSeconds": null,
+            "summary": "23% in reserve | Expected 60% used | Lasts until reset"
+          }
+        }
       ],
       "creditsRemaining": 112.4,
       "limitResetCredits": {
@@ -138,6 +151,9 @@ On command failure:
 - Keep command timeout bounded by the plasmoid setting.
 - Preserve Linux behavior: web-backed sources may fail for providers that require macOS browser/WebKit access; surface the CLI error.
 - Treat `usage.primary/secondary/tertiary.usedPercent` as used percent and convert to percent left with `100 - usedPercent` when `remainingPercent` is absent.
+- Carry `windowMinutes` and a normalized `pace` object on each row when the CLI reports them (native `usage.usageRows` rows supply both directly; standard windows read `usage.<window>.windowMinutes` and `item.pace.<window>`).
+- `pace.summary` is CodexBar's own prose and is rendered verbatim. Leave it null for pace the helper computes itself so QML can build a translated line from `deltaPercent` / `expectedUsedPercent` / `etaSeconds`.
+- Compute fallback pace only from elapsed window time. When a row has no CLI pace and its reset lands at or beyond the full window length, report no pace at all rather than a verdict the data cannot support.
 - Use `openaiDashboard.dailyBreakdown` for credit history when available; otherwise use `cost.daily`.
 - Always pad `dailyUsage` to a continuous last-30 local-calendar-day window (zero-cost flat days when missing).
 - Preserve per-day `modelBreakdowns` as `models: [{ name, costUSD, totalTokens }]`.

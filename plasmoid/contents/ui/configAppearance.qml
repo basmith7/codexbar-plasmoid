@@ -13,6 +13,7 @@ Kirigami.ScrollablePage {
     property alias cfg_showTopBar: showTopBar.checked
     property alias cfg_showScrollbar: showScrollbar.checked
     property alias cfg_anonymizeEmail: anonymizeEmail.checked
+    property alias cfg_paceIndicatorStyle: paceIndicatorStyle.currentValue
 
     // Preserve runtime keys when Apply rewrites the General group.
     property string cfg_selectedEntryIds: "[]"
@@ -64,6 +65,20 @@ Kirigami.ScrollablePage {
             QtControls.CheckBox {
                 id: showScrollbar
                 text: i18n("List scrollbar")
+            }
+
+            QtControls.ComboBox {
+                id: paceIndicatorStyle
+                Kirigami.FormData.label: i18n("Pace indicator:")
+                textRole: "text"
+                valueRole: "value"
+                model: [
+                    { text: i18n("Position color"), value: "position" },
+                    { text: i18n("Current bar color"), value: "bar" },
+                    { text: i18n("Provider color"), value: "provider" },
+                    { text: i18n("Theme text color"), value: "theme" },
+                    { text: i18n("Gaps only"), value: "gaps" }
+                ]
             }
 
             QtControls.CheckBox {

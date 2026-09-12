@@ -412,13 +412,23 @@ function runUsageForConfig(config) {
 function buildDemoUsagePayload(config) {
   const now = new Date();
   const percents = parseDemoPercents(clean(config.account));
+  // Keep every reset inside its window so the demo exercises both the
+  // time-left marker and the helper's fallback pace calculation.
+  const timings = [
+    { windowMinutes: 300, resetInMinutes: 60 },
+    { windowMinutes: 300, resetInMinutes: 180 },
+    { windowMinutes: 10080, resetInMinutes: 2880 },
+    { windowMinutes: 43200, resetInMinutes: 17280 },
+  ];
   const usageRows = percents.map((percentLeft, index) => {
     const title = demoRowTitle(index, percentLeft);
+    const timing = timings[index] || timings[timings.length - 1];
     return {
       id: `demo-${index + 1}`,
       title,
       percentLeft,
-      resetsAt: new Date(now.getTime() + (index + 1) * 36e5 * 6).toISOString(),
+      windowMinutes: timing.windowMinutes,
+      resetsAt: new Date(now.getTime() + timing.resetInMinutes * 60000).toISOString(),
     };
   });
 
@@ -927,7 +937,7 @@ function normalizeProvider(item, cost) {
   const dashboard = item.openaiDashboard || {};
   const identity = usage.identity || {};
   const source = item.source || "unknown";
-  const rows = usageRows(providerId, usage, source);
+  const rows = usageRows(providerId, usage, source, item.pace || {});
   const dailyUsage = annotateLimitResets(dailyUsagePoints(dashboard, cost), rows);
   const rawAccount = item.account || usage.accountEmail || identity.accountEmail || null;
   const account = anonymizeEmails ? anonymizeIdentity(rawAccount) : rawAccount;
@@ -1088,13 +1098,85 @@ function configuredProviderSiteUrl(providerId) {
   }
 }
 
-function usageRows(providerId, usage, source) {
+/**
+ * CodexBar's per-window pace report: whether the remaining budget lasts until
+ * the window resets at the current burn rate. Null when the CLI has none.
+ */
+function normalizePace(pace) {
+  if (!pace || typeof pace !== "object") {
+    return null;
+  }
+  const willLastToReset = typeof pace.willLastToReset === "boolean" ? pace.willLastToReset : null;
+  const deltaPercent = numberOrNull(pace.deltaPercent);
+  if (willLastToReset === null && deltaPercent === null) {
+    return null;
+  }
+  return {
+    willLastToReset,
+    // Negative = budget in reserve versus the expected burn; positive = deficit.
+    deltaPercent,
+    expectedUsedPercent: numberOrNull(pace.expectedUsedPercent),
+    etaSeconds: numberOrNull(pace.etaSeconds),
+    // CodexBar's own prose, rendered verbatim by the widget. Locally computed
+    // pace leaves this null so QML builds a translated line from the fields.
+    summary: typeof pace.summary === "string" ? pace.summary : null,
+  };
+}
+
+/**
+ * Fallback pace when the CLI reports none for a window but we know its length
+ * and reset time: compare budget used against the fraction of the window
+ * elapsed, as CodexBar does for primary/secondary. Returns null when the data
+ * cannot support a projection (no reset time, no window length, or a reset at
+ * or beyond the full window length).
+ */
+function computePace(percentLeft, resetsAt, windowMinutes, now = Date.now()) {
+  if (percentLeft === null || !resetsAt || !(windowMinutes > 0)) {
+    return null;
+  }
+  const resetMs = new Date(resetsAt).getTime();
+  if (!Number.isFinite(resetMs)) {
+    return null;
+  }
+  const windowMs = windowMinutes * 60000;
+  const elapsed = 1 - (resetMs - now) / windowMs;
+  // A reset at or beyond the full window length means no window time has
+  // elapsed, so there is no burn rate to project from. Report nothing rather
+  // than a verdict the data cannot support.
+  if (!(elapsed > 0)) {
+    return null;
+  }
+  const elapsedFraction = Math.min(1, elapsed);
+  const used = Math.max(0, Math.min(1, 1 - percentLeft / 100));
+  const expectedUsedPercent = Math.round(elapsedFraction * 100);
+  const deltaPercent = Math.round((used - elapsedFraction) * 100);
+  const willLastToReset = used <= elapsedFraction;
+  let etaSeconds = null;
+  if (!willLastToReset && used > 0) {
+    // Time until empty at the current average burn rate.
+    etaSeconds = Math.max(0, Math.round(((1 - used) / (used / elapsedFraction)) * windowMs / 1000));
+  }
+  // No prose here: the widget builds the pace line with i18n() from these
+  // fields, and CodexBar's own summary (when present) wins instead.
+  return {
+    willLastToReset,
+    deltaPercent,
+    expectedUsedPercent,
+    etaSeconds,
+    summary: null,
+  };
+}
+
+function usageRows(providerId, usage, source, pace = {}) {
   if (Array.isArray(usage.usageRows)) {
     return usage.usageRows.map((row) => ({
       id: String(row.id || row.title || "usage"),
       title: String(row.title || "Usage"),
       percentLeft: numberOrNull(row.percentLeft),
       resetsAt: row.resetsAt || null,
+      windowMinutes: numberOrNull(row.windowMinutes),
+      pace: normalizePace(row.pace)
+        || computePace(numberOrNull(row.percentLeft), row.resetsAt || null, numberOrNull(row.windowMinutes)),
     })).filter((row) => row.percentLeft !== null);
   }
 
@@ -1119,7 +1201,15 @@ function usageRows(providerId, usage, source) {
     if (source === "api" && !resetsAt && percentLeft !== null) {
       return null;
     }
-    return { id, title, percentLeft, resetsAt };
+    const windowMinutes = numberOrNull(window?.windowMinutes);
+    return {
+      id,
+      title,
+      percentLeft,
+      resetsAt,
+      windowMinutes,
+      pace: normalizePace(pace?.[id]) || computePace(percentLeft, resetsAt, windowMinutes),
+    };
   }).filter((row) => row !== null && row.percentLeft !== null);
 }
 
