@@ -28,12 +28,11 @@ Install as part of the check:
 | `./scripts/agent-check.sh` | Restarting `plasmashell` |
 | `./scripts/run-virtual-plasma.sh` | Scattering host `plasmawindowed` windows |
 | Logs under `/tmp/codexbar-virtual-latest/` | Host computer-use / live screenshots |
-| `virt-shot` for a JPEG of the virtual session | Opening host `plasmawindowed` |
 
 Never open host-visible `plasmawindowed` / computer-use during agent work unless
 the user explicitly approves a host window in the current turn. The wrapper
 enforces this with `--allow-host-window`. Visual check of the isolated session:
-skill **virt-gui-verify** (`virt-shot`).
+logs under `/tmp/codexbar-virtual-latest/`.
 
 ## One-liners
 
@@ -77,7 +76,7 @@ PATH=/tmp/codexbar-plasma-mock:$PATH \
 - `plasmoidviewer -a org.slopfire.codexbar-plasmoid` after install — OK  
 - `plasmoidviewer /path/to/package` — **wrong** (path is not a package arg)
 
-## Skills (project)
+## Skills (project, in `.agents/skills/`)
 
 | Skill | When |
 |-------|------|
@@ -90,6 +89,3 @@ PATH=/tmp/codexbar-plasma-mock:$PATH \
 
 Also see `.agents/AGENTS.md` for QML conventions.
 
-## CodeGraph
-
-When a `.codegraph/` directory exists at the repository root, use CodeGraph before text search or manually reading files when locating or understanding code.
